@@ -1,0 +1,65 @@
+swagger: "2.0"
+info:
+  title: Th3-Sh0p API
+  description: API description in Markdown.
+  version: 1.0.0
+host: ai.th3-sh0p.com
+basePath: /v1
+schemes:
+  - http
+
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:  
+   Bearer:    
+     type: apiKey    
+     name: Authorization    
+     in: header
+
+paths:
+  /image:
+    post:
+      parameters:
+      - in: body
+        name: body
+        description: The image to create from text
+        schema:
+          required:
+            - prompt
+          type: object
+          properties:
+            prompt:
+              type: string
+      responses:
+        '200':
+          description: Images to show
+          schema:
+            type: object
+            properties:
+              image:
+                $ref: '#/definitions/Image'
+        '400':
+          description: openAI returned a non 200
+        '500':
+          description: couldn't process request
+  /images:
+    get:
+      responses:
+        '200':
+          description: Images to show
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Image'
+        '500':
+          description: couldn't process request
+definitions:
+  Image:
+    properties:
+      id:
+        type: integer
+      url:
+        type: string
