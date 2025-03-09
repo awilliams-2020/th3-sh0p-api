@@ -36,8 +36,44 @@ func init() {
   "host": "ai.th3-sh0p.com",
   "basePath": "/v1",
   "paths": {
+    "/google-profile": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "accessToken",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Google profile info",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "imageCredit": {
+                  "type": "integer"
+                },
+                "profile": {
+                  "$ref": "#/definitions/Profile"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "couldn't process request"
+          }
+        }
+      }
+    },
     "/image": {
       "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
         "parameters": [
           {
             "description": "The image to create from text",
@@ -64,6 +100,60 @@ func init() {
               "properties": {
                 "image": {
                   "$ref": "#/definitions/Image"
+                },
+                "imageCredit": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "openAI returned a non 200"
+          },
+          "500": {
+            "description": "couldn't process request"
+          }
+        }
+      }
+    },
+    "/image-pack": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "description": "The image pack to purchase",
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "required": [
+                "imagePack"
+              ],
+              "properties": {
+                "imagePack": {
+                  "type": "string",
+                  "enum": [
+                    "pack_1",
+                    "pack_2",
+                    "pack_3"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment intent",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "paymentIntent": {
+                  "type": "string"
                 }
               }
             }
@@ -79,6 +169,14 @@ func init() {
     },
     "/images": {
       "get": {
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "page",
+            "in": "query",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "description": "Images to show",
@@ -86,6 +184,58 @@ func init() {
               "type": "array",
               "items": {
                 "$ref": "#/definitions/Image"
+              }
+            }
+          },
+          "500": {
+            "description": "couldn't process request"
+          }
+        }
+      }
+    },
+    "/images/pages": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Number of images count",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "500": {
+            "description": "couldn't process request"
+          }
+        }
+      }
+    },
+    "/pub-key": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Stripe publishable key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "/user-credit": {
+      "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User credit info",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "imageCredit": {
+                  "type": "integer"
+                }
               }
             }
           },
@@ -103,6 +253,16 @@ func init() {
           "type": "integer"
         },
         "url": {
+          "type": "string"
+        }
+      }
+    },
+    "Profile": {
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "image": {
           "type": "string"
         }
       }
@@ -135,8 +295,44 @@ func init() {
   "host": "ai.th3-sh0p.com",
   "basePath": "/v1",
   "paths": {
+    "/google-profile": {
+      "get": {
+        "parameters": [
+          {
+            "type": "string",
+            "name": "accessToken",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Google profile info",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "imageCredit": {
+                  "type": "integer"
+                },
+                "profile": {
+                  "$ref": "#/definitions/Profile"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "couldn't process request"
+          }
+        }
+      }
+    },
     "/image": {
       "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
         "parameters": [
           {
             "description": "The image to create from text",
@@ -163,6 +359,60 @@ func init() {
               "properties": {
                 "image": {
                   "$ref": "#/definitions/Image"
+                },
+                "imageCredit": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "openAI returned a non 200"
+          },
+          "500": {
+            "description": "couldn't process request"
+          }
+        }
+      }
+    },
+    "/image-pack": {
+      "post": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "description": "The image pack to purchase",
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "required": [
+                "imagePack"
+              ],
+              "properties": {
+                "imagePack": {
+                  "type": "string",
+                  "enum": [
+                    "pack_1",
+                    "pack_2",
+                    "pack_3"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment intent",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "paymentIntent": {
+                  "type": "string"
                 }
               }
             }
@@ -178,6 +428,14 @@ func init() {
     },
     "/images": {
       "get": {
+        "parameters": [
+          {
+            "type": "integer",
+            "name": "page",
+            "in": "query",
+            "required": true
+          }
+        ],
         "responses": {
           "200": {
             "description": "Images to show",
@@ -185,6 +443,58 @@ func init() {
               "type": "array",
               "items": {
                 "$ref": "#/definitions/Image"
+              }
+            }
+          },
+          "500": {
+            "description": "couldn't process request"
+          }
+        }
+      }
+    },
+    "/images/pages": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Number of images count",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "500": {
+            "description": "couldn't process request"
+          }
+        }
+      }
+    },
+    "/pub-key": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Stripe publishable key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "/user-credit": {
+      "get": {
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User credit info",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "imageCredit": {
+                  "type": "integer"
+                }
               }
             }
           },
@@ -202,6 +512,16 @@ func init() {
           "type": "integer"
         },
         "url": {
+          "type": "string"
+        }
+      }
+    },
+    "Profile": {
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "image": {
           "type": "string"
         }
       }

@@ -42,12 +42,34 @@ func NewTh3Sh0pAPIAPI(spec *loads.Document) *Th3Sh0pAPIAPI {
 
 		JSONProducer: runtime.JSONProducer(),
 
+		GetGoogleProfileHandler: GetGoogleProfileHandlerFunc(func(params GetGoogleProfileParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetGoogleProfile has not yet been implemented")
+		}),
 		GetImagesHandler: GetImagesHandlerFunc(func(params GetImagesParams) middleware.Responder {
 			return middleware.NotImplemented("operation GetImages has not yet been implemented")
 		}),
-		PostImageHandler: PostImageHandlerFunc(func(params PostImageParams) middleware.Responder {
+		GetImagesPagesHandler: GetImagesPagesHandlerFunc(func(params GetImagesPagesParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetImagesPages has not yet been implemented")
+		}),
+		GetPubKeyHandler: GetPubKeyHandlerFunc(func(params GetPubKeyParams) middleware.Responder {
+			return middleware.NotImplemented("operation GetPubKey has not yet been implemented")
+		}),
+		GetUserCreditHandler: GetUserCreditHandlerFunc(func(params GetUserCreditParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation GetUserCredit has not yet been implemented")
+		}),
+		PostImageHandler: PostImageHandlerFunc(func(params PostImageParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation PostImage has not yet been implemented")
 		}),
+		PostImagePackHandler: PostImagePackHandlerFunc(func(params PostImagePackParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation PostImagePack has not yet been implemented")
+		}),
+
+		// Applies when the "Authorization" header is set
+		BearerAuth: func(token string) (interface{}, error) {
+			return nil, errors.NotImplemented("api key auth (Bearer) Authorization from header param [Authorization] has not yet been implemented")
+		},
+		// default authorizer is authorized meaning no requests are blocked
+		APIAuthorizer: security.Authorized(),
 	}
 }
 
@@ -84,10 +106,27 @@ type Th3Sh0pAPIAPI struct {
 	//   - application/json
 	JSONProducer runtime.Producer
 
+	// BearerAuth registers a function that takes a token and returns a principal
+	// it performs authentication based on an api key Authorization provided in the header
+	BearerAuth func(string) (interface{}, error)
+
+	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
+	APIAuthorizer runtime.Authorizer
+
+	// GetGoogleProfileHandler sets the operation handler for the get google profile operation
+	GetGoogleProfileHandler GetGoogleProfileHandler
 	// GetImagesHandler sets the operation handler for the get images operation
 	GetImagesHandler GetImagesHandler
+	// GetImagesPagesHandler sets the operation handler for the get images pages operation
+	GetImagesPagesHandler GetImagesPagesHandler
+	// GetPubKeyHandler sets the operation handler for the get pub key operation
+	GetPubKeyHandler GetPubKeyHandler
+	// GetUserCreditHandler sets the operation handler for the get user credit operation
+	GetUserCreditHandler GetUserCreditHandler
 	// PostImageHandler sets the operation handler for the post image operation
 	PostImageHandler PostImageHandler
+	// PostImagePackHandler sets the operation handler for the post image pack operation
+	PostImagePackHandler PostImagePackHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -165,11 +204,30 @@ func (o *Th3Sh0pAPIAPI) Validate() error {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
+	if o.BearerAuth == nil {
+		unregistered = append(unregistered, "AuthorizationAuth")
+	}
+
+	if o.GetGoogleProfileHandler == nil {
+		unregistered = append(unregistered, "GetGoogleProfileHandler")
+	}
 	if o.GetImagesHandler == nil {
 		unregistered = append(unregistered, "GetImagesHandler")
 	}
+	if o.GetImagesPagesHandler == nil {
+		unregistered = append(unregistered, "GetImagesPagesHandler")
+	}
+	if o.GetPubKeyHandler == nil {
+		unregistered = append(unregistered, "GetPubKeyHandler")
+	}
+	if o.GetUserCreditHandler == nil {
+		unregistered = append(unregistered, "GetUserCreditHandler")
+	}
 	if o.PostImageHandler == nil {
 		unregistered = append(unregistered, "PostImageHandler")
+	}
+	if o.PostImagePackHandler == nil {
+		unregistered = append(unregistered, "PostImagePackHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -186,12 +244,21 @@ func (o *Th3Sh0pAPIAPI) ServeErrorFor(operationID string) func(http.ResponseWrit
 
 // AuthenticatorsFor gets the authenticators for the specified security schemes
 func (o *Th3Sh0pAPIAPI) AuthenticatorsFor(schemes map[string]spec.SecurityScheme) map[string]runtime.Authenticator {
-	return nil
+	result := make(map[string]runtime.Authenticator)
+	for name := range schemes {
+		switch name {
+		case "Bearer":
+			scheme := schemes[name]
+			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, o.BearerAuth)
+
+		}
+	}
+	return result
 }
 
 // Authorizer returns the registered authorizer
 func (o *Th3Sh0pAPIAPI) Authorizer() runtime.Authorizer {
-	return nil
+	return o.APIAuthorizer
 }
 
 // ConsumersFor gets the consumers for the specified media types.
@@ -262,11 +329,31 @@ func (o *Th3Sh0pAPIAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/google-profile"] = NewGetGoogleProfile(o.context, o.GetGoogleProfileHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/images"] = NewGetImages(o.context, o.GetImagesHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/images/pages"] = NewGetImagesPages(o.context, o.GetImagesPagesHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/pub-key"] = NewGetPubKey(o.context, o.GetPubKeyHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/user-credit"] = NewGetUserCredit(o.context, o.GetUserCreditHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/image"] = NewPostImage(o.context, o.PostImageHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/image-pack"] = NewPostImagePack(o.context, o.PostImagePackHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

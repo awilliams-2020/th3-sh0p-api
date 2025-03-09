@@ -19,16 +19,16 @@ import (
 )
 
 // PostImageHandlerFunc turns a function with the right signature into a post image handler
-type PostImageHandlerFunc func(PostImageParams) middleware.Responder
+type PostImageHandlerFunc func(PostImageParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn PostImageHandlerFunc) Handle(params PostImageParams) middleware.Responder {
-	return fn(params)
+func (fn PostImageHandlerFunc) Handle(params PostImageParams, principal interface{}) middleware.Responder {
+	return fn(params, principal)
 }
 
 // PostImageHandler interface for that can handle valid post image params
 type PostImageHandler interface {
-	Handle(PostImageParams) middleware.Responder
+	Handle(PostImageParams, interface{}) middleware.Responder
 }
 
 // NewPostImage creates a new http.Handler for the post image operation
@@ -52,12 +52,25 @@ func (o *PostImage) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		*r = *rCtx
 	}
 	var Params = NewPostImageParams()
+	uprinc, aCtx, err := o.Context.Authorize(r, route)
+	if err != nil {
+		o.Context.Respond(rw, r, route.Produces, route, err)
+		return
+	}
+	if aCtx != nil {
+		*r = *aCtx
+	}
+	var principal interface{}
+	if uprinc != nil {
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+	}
+
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
-	res := o.Handler.Handle(Params) // actually handle the request
+	res := o.Handler.Handle(Params, principal) // actually handle the request
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }
@@ -125,6 +138,9 @@ type PostImageOKBody struct {
 
 	// image
 	Image *models.Image `json:"image,omitempty"`
+
+	// image credit
+	ImageCredit int64 `json:"imageCredit,omitempty"`
 }
 
 // Validate validates this post image o k body

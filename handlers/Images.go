@@ -6,22 +6,48 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
+	"os"
+	"strings"
 	"th3-sh0p-api/database"
 	"th3-sh0p-api/filesystem"
 	"th3-sh0p-api/models"
 	"th3-sh0p-api/restapi/operations"
 
 	"github.com/go-openapi/runtime/middleware"
+	"google.golang.org/api/idtoken"
 )
 
 type Data struct {
 	Data []*models.Image
 }
 
-func CreateImage(params operations.PostImageParams) middleware.Responder {
+func CreateImage(params operations.PostImageParams, principal interface{}) middleware.Responder {
 	response := operations.NewPostImageOK()
 	internalErr := operations.NewGetImagesInternalServerError()
+	bearerHeader := params.HTTPRequest.Header.Get("Authorization")
+
+	idToken := strings.Split(bearerHeader, " ")[1]
+	payload, err := idtoken.ParsePayload(idToken)
+	if err != nil {
+		log.Printf("Failed to parse payload, %v", err)
+		return internalErr
+	}
+
+	claims := payload.Claims
+	email := claims["email"].(string)
+
+	credit, err := database.ReduceUserCredit(email)
+	if err != nil {
+		log.Printf("Failed to user credit, %v", err)
+		return internalErr
+	}
+
+	if credit == 0 {
+		log.Println("User has no credit left")
+		return operations.NewPostImageBadRequest()
+	}
 
 	request := struct {
 		Model   string `json:"model"`
@@ -44,7 +70,7 @@ func CreateImage(params operations.PostImageParams) middleware.Responder {
 	}
 	req, err := http.NewRequest("POST", "https://api.openai.com/v1/images/generations", bytes.NewBuffer(_bytes))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer")
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("OPEN_AI"))
 	if err != nil {
 		log.Printf("Failed to post generated image from open api, %v", err)
 		return internalErr
@@ -93,18 +119,39 @@ func CreateImage(params operations.PostImageParams) middleware.Responder {
 			ID:  ID,
 			URL: url,
 		},
+		ImageCredit: credit,
 	})
 	return response
 }
 
 func GetImages(params operations.GetImagesParams) middleware.Responder {
+	page := params.Page
 	response := operations.NewGetImagesOK()
 	internalErr := operations.NewGetImagesInternalServerError()
-	images, err := database.GetImages()
+	images, err := database.GetImages(page)
 	if err != nil {
 		log.Printf("Failed to get images, %v", err)
 		return internalErr
 	}
 	response.SetPayload(images)
+	return response
+}
+
+func GetImagesPages(params operations.GetImagesPagesParams) middleware.Responder {
+	response := operations.NewGetImagesPagesOK()
+	internalErr := operations.NewGetImagesInternalServerError()
+	count, err := database.GetImageCount()
+	if err != nil {
+		log.Printf("Failed to get image count, %v", err)
+		return internalErr
+	}
+
+	if count == float64(0) {
+		count = float64(1)
+	}
+
+	pages := math.Ceil(count / 10)
+
+	response.SetPayload(int64(pages))
 	return response
 }

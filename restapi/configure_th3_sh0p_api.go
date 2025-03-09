@@ -5,11 +5,14 @@ package restapi
 import (
 	"crypto/tls"
 	"net/http"
+	"os"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
+	"github.com/stripe/stripe-go/v81"
 
 	"th3-sh0p-api/handlers"
+	"th3-sh0p-api/internal"
 	"th3-sh0p-api/restapi/operations"
 )
 
@@ -29,17 +32,31 @@ func configureAPI(api *operations.Th3Sh0pAPIAPI) http.Handler {
 	// Example:
 	// api.Logger = log.Printf
 
+	api.BearerAuth = internal.ValidateToken
+
 	api.UseSwaggerUI()
 	// To continue using redoc as your UI, uncomment the following line
 	// api.UseRedoc()
+
+	stripe.Key = os.Getenv("STRIPE_KEY")
 
 	api.JSONConsumer = runtime.JSONConsumer()
 
 	api.JSONProducer = runtime.JSONProducer()
 
+	api.GetPubKeyHandler = operations.GetPubKeyHandlerFunc(handlers.GetPubKey)
+
+	api.GetUserCreditHandler = operations.GetUserCreditHandlerFunc(handlers.GetUserCredit)
+
 	api.GetImagesHandler = operations.GetImagesHandlerFunc(handlers.GetImages)
 
+	api.GetImagesPagesHandler = operations.GetImagesPagesHandlerFunc(handlers.GetImagesPages)
+
+	api.GetGoogleProfileHandler = operations.GetGoogleProfileHandlerFunc(handlers.GetGoogleProfile)
+
 	api.PostImageHandler = operations.PostImageHandlerFunc(handlers.CreateImage)
+
+	api.PostImagePackHandler = operations.PostImagePackHandlerFunc(handlers.PostImagePack)
 
 	api.PreServerShutdown = func() {}
 

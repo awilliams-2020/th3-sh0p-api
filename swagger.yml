@@ -20,8 +20,38 @@ securityDefinitions:
      in: header
 
 paths:
+  /image-pack:
+    post:
+      security:
+        - Bearer: []
+      parameters:
+      - in: body
+        name: body
+        description: The image pack to purchase
+        schema:
+          required:
+            - imagePack
+          type: object
+          properties:
+            imagePack:
+              type: string
+              enum: [pack_1, pack_2, pack_3]
+      responses:
+        '200':
+          description: Payment intent
+          schema:
+            type: object
+            properties:
+              paymentIntent:
+                type: string
+        '400':
+          description: openAI returned a non 200
+        '500':
+          description: couldn't process request
   /image:
     post:
+      security:
+        - Bearer: []
       parameters:
       - in: body
         name: body
@@ -41,12 +71,19 @@ paths:
             properties:
               image:
                 $ref: '#/definitions/Image'
+              imageCredit:
+                type: integer
         '400':
           description: openAI returned a non 200
         '500':
           description: couldn't process request
   /images:
     get:
+      parameters:
+        - in: query
+          name: page
+          type: integer
+          required: true
       responses:
         '200':
           description: Images to show
@@ -56,10 +93,65 @@ paths:
               $ref: '#/definitions/Image'
         '500':
           description: couldn't process request
+  /images/pages:
+    get:
+      responses:
+        '200':
+          description: Number of images count
+          schema:
+            type: integer
+        '500':
+          description: couldn't process request
+  /google-profile:
+    get:
+      parameters:
+        - in: query
+          name: accessToken
+          required: true
+          type: string
+      responses:
+        '200':
+          description: Google profile info
+          schema:
+            type: object
+            properties:
+              profile:
+                $ref: '#/definitions/Profile'
+              imageCredit:
+                type: integer
+        '500':
+          description: couldn't process request
+  /user-credit:
+    get:
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          description: User credit info
+          schema:
+            type: object
+            properties:
+              imageCredit:
+                type: integer
+        '500':
+          description: couldn't process request
+  /pub-key:
+    get:
+      responses:
+        '200':
+          description: 'Stripe publishable key'
+          schema:
+            type: string
 definitions:
   Image:
     properties:
       id:
         type: integer
       url:
+        type: string
+  Profile:
+    properties:
+      email:
+        type: string
+      image:
         type: string
