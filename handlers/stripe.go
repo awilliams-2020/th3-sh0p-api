@@ -8,5 +8,5 @@ import (
 )
 
 func GetPubKey(params operations.GetPubKeyParams) middleware.Responder {
-	return operations.NewGetPubKeyOK().WithPayload(os.Getenv("STRIPE_WEBHOOK_KEY"))
+	return operations.NewGetPubKeyOK().WithPayload(os.Getenv("STRIPE_PUB_KEY"))
 }
